@@ -11,7 +11,7 @@ const prompt = require("prompt");
 
 const botSim = require("./Bot");
 
-const PORT = parseInt(process.env.PORT);
+const PORT = 3000;
 
 const defaultMap = `####################
 #             ## # #
