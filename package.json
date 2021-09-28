@@ -4,11 +4,13 @@
   "description": "robot server simulation",
   "main": "server.js",
   "scripts": {
-    "test": "nodemon server.js"
+    "start": "nodemon server.js"
   },
   "author": "lufemas",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
     "easystarjs": "^0.4.4",
     "express": "^4.17.1",
     "nodemon": "^2.0.13",

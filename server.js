@@ -1,16 +1,19 @@
-const express = require('express');
+const express = require("express");
+const cors = require("cors");
 const app = express();
-const http = require('http');
+const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
-const io = new Server(server);
+require('dotenv').config({ path: './keys.env' })
+// (httpServer, {  cors: {    origin: "http://localhost:3000/",    methods: ["GET", "POST"]  }});;
 
-const prompt = require('prompt');
+const prompt = require("prompt");
 
-const botSim = require('./Bot')
+const botSim = require("./Bot");
 
-const defaultMap = 
-`####################
+const PORT = parseInt(process.env.PORT);
+
+const defaultMap = `####################
 #             ## # #
 # # ## #####   # # #
 # # ## #####  ## # #
@@ -23,21 +26,65 @@ const defaultMap =
 # #              # #
 # # ########  ## # #
 #                  #
-####################`
+####################`;
 
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
+app.use(cors);
+
+const io = new Server(server, {
+  cors: { origin: "*", methods: ["GET", "POST"] },
 });
 
-io.on('connection', (socket) => {
-  console.log('a user connected');
+app.get("/", (req, res) => {
+  res.sendFile(__dirname + "/index.html");
 });
 
-server.listen(3000, () => {
-  console.log('listening on *:3000');
+io.on("connection", (socket) => {
+  console.log("a user connected");
 
-  const bot = new botSim.Bot();
+  const bot = new botSim.Bot(io);
 
-  botSim.loadMap(defaultMap,bot)
 
+  socket.on("loadmap", (mapInput) => {
+    if (mapInput != ''){
+
+        console.log("Loading map");
+
+          botSim.loadMap(mapInput, bot);
+
+    }else {
+        console.warn('Bad Map String');
+    }
+  });
+
+  socket.on("command", (cmd) => {
+    {
+      switch (cmd) {
+        case "pause":
+          console.log("Pausing Bot");
+
+          botSim.pause( bot);
+
+          break;
+
+        case "resume":
+          botSim.resume(bot);
+          break;
+
+          case "stop":
+            botSim.killSim(bot);
+            break; 
+
+        default:
+          console.log(`command '${cmd}'  not found`);
+          break;
+      }
+    }
+  });
+  socket.onAny((arg) => {
+    console.log(arg);
+  });
+});
+
+server.listen(PORT, () => {
+  console.log(`listening on PORT:${PORT}`);
 });
