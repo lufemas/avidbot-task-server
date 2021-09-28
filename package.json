@@ -4,7 +4,9 @@
   "description": "robot server simulation",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "node server.js",
+    "run": "node server.js",
+    "dev": "nodemon server.js"
   },
   "author": "lufemas",
   "license": "ISC",
