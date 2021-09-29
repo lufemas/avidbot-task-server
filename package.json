@@ -2,11 +2,11 @@
   "name": "avidbot",
   "version": "1.0.0",
   "description": "robot server simulation",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js",
-    "run": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node index.js",
+    "run": "node index.js",
+    "dev": "nodemon index.js"
   },
   "author": "lufemas",
   "license": "ISC",
