@@ -11,7 +11,7 @@ const prompt = require("prompt");
 
 const botSim = require("./Bot");
 
-const PORT = 5050;
+const PORT = 8080;
 
 const defaultMap = `####################
 #             ## # #
@@ -86,5 +86,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Server listening on PORT:${PORT}`);
+  console.log(`Serverlistening on PORT:${PORT}`);
 });
