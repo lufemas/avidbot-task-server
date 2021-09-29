@@ -1,58 +1,68 @@
-// const pf = require('./pathfinding');
-const PF = require('./pathfinding');
-const EasyStar = require('easystarjs')
+// Bot Class and utility functions
+
+const EasyStar = require('easystarjs')    // Pathfinding library I'm using
+
+// Create a new instance of EasyStar
 const easystar = new EasyStar.js()
 
-
-class Node {
-    x = 0;
-    y = 0;
-    openPaths = []
-}
-
+// Bot Class ( Data Only )
+// Holds all the important data,
+// including, data necessary to finish the ask and
+// data for monitoring and statistics
 class Bot {
 
+    // Data of the map are under the 'map' object
     map = {
-        original: [[]],
-        floorPlan: [[]],
-        width: 0,
-        height: 0,
-        totalWalkTiles : 0,
-        totalCleanedTiles : 0,
+        original: [[]],         // The original map without any information
+        floorPlan: [[]],        // The map with cleaning information
+        width: 0,               // Map width in 'Areas'
+        height: 0,              // Map height in 'Areas'
+        totalWalkTiles : 0,     // Total walkable 'Areas'
+        totalCleanedTiles : 0,  // Total cleaned 'Areas'
     }
     
+    // Total stetps done during the task
     totalSteps = 0;
 
     
+    // Time related data
     timeSec = {
         started : 0.0,
         elapsed: 0.0,
         finished: 0.0
     }
 
+    // PAUSE state control
     isPaused = true;
 
-
+    // Initial Posistion, negative means it is not defined yet
     startPos = [-1, -1];
-    // startPos = [1, 13];
+
+    // current position
     currPos = [-1, -1];
     nodes = [[]];
     startNode = {};
+
+    // Bot speed
     movSpeed = 200;
     cleaningSpeed = 200;
 
+    // receives the socket.io instance as a constructor to be able to emit messages
     constructor(io) {
         this.io = io
     }
 }
+
+// This function load the map and convert the ASCII characters to integers
+// '#' is 1, ' ' is 0
+// During this step the first avaiable position will be set as initial position
+// After everything done, a update message is emitted
 async function loadMap(inputMap, bot) {
     let currLine = 0;
 
     ([...inputMap]).forEach((tileChar, ind) => {
-        // console.log(tile)
         let tile = 0;
         tileChar == '#' ? tile = 1 : null
-        // if(tileChar == ' ') tile = 0
         tileChar == '\n' ?
             function () {
                 currLine += 1; bot.map.floorPlan[currLine] = []; bot.map.original[currLine] = []
@@ -87,6 +97,7 @@ async function loadMap(inputMap, bot) {
 }
 
 
+// PrintMap function for Debugging
 function printMap(map) {
     console.log('\n-----------------')
     map.forEach(line => {
@@ -98,6 +109,7 @@ function printMap(map) {
 
 }
 
+// Some utility functions----------------------------------
 function isValid(tile) {
     return tile != '#';
 }
@@ -110,7 +122,10 @@ function isClean(tile) {
 function vec2Sum(arr1, arr2) {
     return [arr1[0] + arr2[0], arr1[1] + arr2[1]]
 }
+// --------------------------------------------------------
 
+// 'walk' function
+// Receives a list of positions pre calculated to move the bot also receved as argument 
 function walk(positions, bot) {
 
     const nextPos = positions.shift()
@@ -133,8 +148,10 @@ function walk(positions, bot) {
 
     bot.timeSec.elapsed = (new Date().getTime()/1000) - bot.timeSec.started
 
+    // After every step, emits the new state
     emitUpdate(bot)
 
+    // Walk again in 200ms if is not paused and there is new positions to go
     if(!bot.isPaused)
     setTimeout(() => {
         if (positions.length > 0) {
@@ -148,6 +165,7 @@ function walk(positions, bot) {
 
 }
 
+// Utility function not used at production
 function getNextFrees(i, j) {
     const result = [];
 
@@ -159,8 +177,10 @@ function getNextFrees(i, j) {
     return result;
 }
 
+// Function that searchs for NOT CLEANED Areas and calculate the path to it
 async function setNextGoal(bot) {
     junkRemoval(bot)
+    // Current position is marked as 'x'
     bot.map.floorPlan[bot.currPos[0]][bot.currPos[1]] = 'x'
     emitUpdate(bot)
 
@@ -175,23 +195,19 @@ async function setNextGoal(bot) {
 
             if (bot.map.floorPlan[j][i] == 0) {
 
-                // console.log(`${bot.map.floorPlan[j][i]} [${j}][${i}] is valid`)
-                // bot.map.floorPlan[j][i] = 9
+
+                // If a NOT CLEANED Area is found, claculate path, call 'walk' and break the loop
                 console.log(`next goal: [${j}][${i}]`)
 
 
-                // console.log('walking')
                 printMap(bot.map.floorPlan)
                 console.log(bot.map.totalWalkTiles)
                 console.log(bot.map.totalCleanedTiles)
 
-                // await walk(PF(bot.currPos, bot.map.floorPlan.slice(), [j,i]), bot)
                 easystar.findPath(bot.currPos[1], bot.currPos[0], i, j, function (path) {
                     if (path === null) {
                         console.warn("Path was not found.");
                     } else {
-                        // alert("Path was found. The first Point is " + path[0].x + " " + path[0].y);
-                        // console.table(path)
                         walk(path, bot)
                     }
                 });
@@ -204,10 +220,12 @@ async function setNextGoal(bot) {
 
             }
 
+            // If the loop completes all spots are cleaned or the robot is over the last one to be cleaned 
+            // Emits 'finished' signal
             if (i >= bot.map.width - 1 && j >= bot.map.height - 1) {
 
                 bot.totalCleanedTiles = bot.totalWalkTiles;
-                bot.map.floorPlan[bot.currPos[0]][bot.currPos[1]] = 2
+                // bot.map.floorPlan[bot.currPos[0]][bot.currPos[1]] = 2
 
                 console.log('finished')
 
@@ -233,6 +251,7 @@ async function setNextGoal(bot) {
 
 }
 
+// Utility function to remove any non usable information at the working map
 function junkRemoval(bot) {
     for (let i = 0; i < bot.map.width; i++) {
         for (let j = 0; j < bot.map.height; j++) {
@@ -256,6 +275,7 @@ function resume(bot){
     setNextGoal(bot)
 }
 
+// Kill/Stop Bot
 function killSim(bot){
 
     bot.map = {
@@ -285,6 +305,7 @@ function killSim(bot){
     })
 }
 
+// Update signal
 function emitUpdate( bot){
     bot.io.emit('update', 
     {currentPosition : bot.currPos, 
