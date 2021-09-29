@@ -11,7 +11,7 @@ const prompt = require("prompt");
 
 const botSim = require("./Bot");
 
-const PORT = 3000;
+const PORT = 5050;
 
 const defaultMap = `####################
 #             ## # #
@@ -34,9 +34,9 @@ const io = new Server(server, {
   cors: { origin: "*", methods: ["GET", "POST"] },
 });
 
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/index.html");
-});
+app.get('/', (req, res) => {
+    res.send('Socket Server')
+  })
 
 io.on("connection", (socket) => {
   console.log("a user connected");
@@ -86,5 +86,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`listening on PORT:${PORT}`);
+  console.log(`Server listening on PORT:${PORT}`);
 });
